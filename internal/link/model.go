@@ -1,6 +1,7 @@
 package link
 
 import (
+	"fmt"
 	"math/rand/v2"
 
 	"gorm.io/gorm"
@@ -13,10 +14,15 @@ type Link struct {
 }
 
 func NewLink(url string) *Link {
-	return &Link{
-		Url:  url,
-		Hash: "",
+	link := &Link{
+		Url: url,
 	}
+	link.GenerateHash()
+	return link
+}
+
+func (link *Link) GenerateHash() {
+	link.Hash = RandStringRunes(6)
 }
 
 var letterRunes = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
@@ -26,5 +32,6 @@ func RandStringRunes(n int) string {
 	for i := range b {
 		b[i] = letterRunes[rand.IntN(len(letterRunes))]
 	}
+	fmt.Println("hash", string(b))
 	return string(b)
 }
