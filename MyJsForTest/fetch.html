@@ -1,0 +1,18 @@
+
+<script>
+
+var router = () => {
+  console.log('router')
+}
+var middleware = {
+  CORS: (fu) => {
+    console.log('CORS')
+    fu()
+  },
+  Logging: (fu) => {
+    console.log('Logging')
+    fu()
+  }
+}
+middleware.CORS(middleware.Logging(router))
+</script>

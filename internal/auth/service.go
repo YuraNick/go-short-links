@@ -1,0 +1,51 @@
+package auth
+
+import (
+	"errors"
+	"go/adv-demo/internal/user"
+
+	"golang.org/x/crypto/bcrypt"
+)
+
+type AuthService struct {
+	UserRepository *user.UserRepository
+}
+
+func NewAuthService(userRepository *user.UserRepository) *AuthService {
+	return &AuthService{
+		UserRepository: userRepository,
+	}
+}
+
+func (service *AuthService) Login(email, password string) (string, error) {
+	exitedUser, _ := service.UserRepository.FindByEmail(email)
+	if exitedUser == nil {
+		return "", errors.New(ErrWrongCredentials)
+	}
+	err := bcrypt.CompareHashAndPassword([]byte(exitedUser.Password), []byte(password))
+	if err != nil {
+		return "", errors.New(ErrWrongCredentials)
+	}
+	return email, nil
+}
+
+func (service *AuthService) Register(email, password, name string) (string, error) {
+	exitedUser, _ := service.UserRepository.FindByEmail(email)
+	if exitedUser != nil {
+		return "", errors.New(ErrUserExists)
+	}
+	passwordHash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return "", err
+	}
+	user := &user.User{
+		Email:    email,
+		Password: string(passwordHash),
+		Name:     name,
+	}
+	user, err = service.UserRepository.Create(user)
+	if err != nil {
+		return "", err
+	}
+	return user.Email, nil
+}

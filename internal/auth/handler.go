@@ -1,8 +1,8 @@
 package auth
 
 import (
-	"fmt"
 	"go/adv-demo/configs"
+	"go/adv-demo/pkg/jwt"
 	"go/adv-demo/pkg/req"
 	"go/adv-demo/pkg/resp"
 	"net/http"
@@ -10,22 +10,42 @@ import (
 
 type AuthHandlerDeps struct {
 	*configs.Config
+	AuthService *AuthService
 }
 
 type AuthHandler struct {
 	*configs.Config
+	AuthService *AuthService
+}
+
+func NewAuthHandler(router *http.ServeMux, deps AuthHandlerDeps) {
+	handler := &AuthHandler{
+		Config:      deps.Config,
+		AuthService: deps.AuthService,
+	}
+	router.HandleFunc("POST /auth/login", handler.Login())
+	router.HandleFunc("POST /auth/register", handler.Register())
 }
 
 func (handler *AuthHandler) Login() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		fmt.Println(handler.Config.Auth.Secret)
-		fmt.Println("/auth/login")
-		_, err := req.HandleBody[LoginRequest](&w, r)
+		body, err := req.HandleBody[LoginRequest](&w, r)
 		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		email, err := handler.AuthService.Login(body.Email, body.Password)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusUnauthorized)
+			return
+		}
+		jwt, err := jwt.NewJwt(handler.Config.Auth.Secret).Create(email)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 		res := LoginResponse{
-			Token: "jwt",
+			Token: jwt,
 		}
 		resp.SetJson(w, res, 201)
 	}
@@ -33,22 +53,24 @@ func (handler *AuthHandler) Login() http.HandlerFunc {
 
 func (handler *AuthHandler) Register() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		fmt.Println("/auth/register")
-		_, err := req.HandleBody[RegisterRequest](&w, r)
+		body, err := req.HandleBody[RegisterRequest](&w, r)
 		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		email, err := handler.AuthService.Register(body.Email, body.Password, body.Name)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		jwt, err := jwt.NewJwt(handler.Config.Auth.Secret).Create(email)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 		res := RegisterResponse{
-			Token: "jwt",
+			Token: jwt,
 		}
 		resp.SetJson(w, res, 201)
 	}
-}
-
-func NewAuthHandler(router *http.ServeMux, deps AuthHandlerDeps) {
-	handler := &AuthHandler{
-		Config: deps.Config,
-	}
-	router.HandleFunc("POST /auth/login", handler.Login())
-	router.HandleFunc("POST /auth/register", handler.Register())
 }
