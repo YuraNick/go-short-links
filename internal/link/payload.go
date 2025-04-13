@@ -16,3 +16,8 @@ type LinkReadRequest struct {
 type LinkReadResponse struct {
 	Url string `json:"url"`
 }
+
+type GetAllLinksResponse struct {
+	Links []Link `json:"links"`
+	Count int64
+}

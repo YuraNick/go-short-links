@@ -5,6 +5,7 @@ package main
 import (
 	"go/adv-demo/configs"
 	"go/adv-demo/internal/link"
+	"go/adv-demo/internal/stat"
 	"go/adv-demo/internal/user"
 	"go/adv-demo/pkg/db"
 )
@@ -12,5 +13,5 @@ import (
 func main() {
 	conf := configs.LoadConfig()
 	db := db.NewDb(conf)
-	db.AutoMigrate(&link.Link{}, &user.User{})
+	db.AutoMigrate(&link.Link{}, &user.User{}, &stat.Stat{})
 }
